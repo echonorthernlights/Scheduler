@@ -22,16 +22,16 @@ namespace Scheduler.Services
             {
                 using (var scope = _serviceProvider.CreateScope())
                 {
-                    var controllerFactoryService = scope.ServiceProvider.GetRequiredService<IControllerFactoryService>();
+                    var controllerFactoryService = scope.ServiceProvider.GetRequiredService<HomeController>();
 
                     // Create the controller instance
-                    var controller = controllerFactoryService.CreateController();
-
+                    var result = controllerFactoryService.GetHello();
+                    
                     // Call the controller method
-                    var result = controller.GetHello();
+                    //var result = controller.GetHello();
 
                     // Handle the result (e.g., log it, etc.)
-                    Console.WriteLine($"Task running in backround {DateTime.Now}"); // For demonstration
+                    Console.WriteLine($"Task running in background {DateTime.Now}"); // For demonstration
                 }
 
                 // Wait for 1 minute before the next execution

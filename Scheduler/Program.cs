@@ -1,3 +1,4 @@
+using Scheduler.Controllers;
 using Scheduler.Services;
 using Scheduler.Services.Interfaces;
 
@@ -11,8 +12,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IService, Service>();
-builder.Services.AddScoped<IControllerFactoryService, ControllerFactoryService>();
-
+//builder.Services.AddScoped<IControllerFactoryService, ControllerFactoryService>();
+builder.Services.AddScoped<HomeController>();
 
 // Register the ScheduledService as a background service
 builder.Services.AddHostedService<ScheduledService>();
