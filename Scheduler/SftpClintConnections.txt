@@ -1,0 +1,70 @@
+﻿// config class
+public class SftpConnectionInfo
+{
+    public string Host { get; set; }
+    public int Port { get; set; }
+    public string Username { get; set; }
+    public string Password { get; set; }
+    public string PrivateKeyPath { get; set; }
+    public string Passphrase { get; set; }
+}
+// factory class
+public class SftpClientFactory
+{
+    public static SftpClient CreateSftpClient(SftpConnectionInfo connectionInfo)
+    {
+        if (!string.IsNullOrEmpty(connectionInfo.PrivateKeyPath))
+        {
+            var keyFile = new PrivateKeyFile(connectionInfo.PrivateKeyPath, connectionInfo.Passphrase);
+            var keyAuthMethod = new PrivateKeyAuthenticationMethod(connectionInfo.Username, keyFile);
+            var connInfo = new ConnectionInfo(connectionInfo.Host, connectionInfo.Port, connectionInfo.Username, keyAuthMethod);
+
+            return new SftpClient(connInfo);
+        }
+        else if (!string.IsNullOrEmpty(connectionInfo.Password))
+        {
+            return new SftpClient(connectionInfo.Host, connectionInfo.Port, connectionInfo.Username, connectionInfo.Password);
+        }
+        else
+        {
+            throw new ArgumentException("Invalid authentication method provided.");
+        }
+    }
+}
+
+// usage of class
+class Program
+{
+    static void Main(string[] args)
+    {
+        var sftpConnectionInfo = new SftpConnectionInfo
+        {
+            Host = "sftp.example.com",
+            Port = 22,
+            Username = "tester",
+            Password = "yourpassword",
+            PrivateKeyPath = "path/to/private/key",
+            Passphrase = "yourpassphrase"
+        };
+
+        SftpClient sftpClient = SftpClientFactory.CreateSftpClient(sftpConnectionInfo);
+
+        try
+        {
+            sftpClient.Connect();
+            Console.WriteLine("Connected to SFTP server successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            if (sftpClient.IsConnected)
+            {
+                sftpClient.Disconnect();
+                Console.WriteLine("Disconnected from SFTP server.");
+            }
+        }
+    }
+}
