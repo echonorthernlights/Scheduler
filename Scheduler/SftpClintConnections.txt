@@ -108,4 +108,50 @@ class SftpClientFactory
         }
     }
 }
+//////Auth Mode
+public enum AuthenticationMethod
+{
+    UserAndPassword,
+    PrivateKeyWithPassphrase,
+    PrivateKeyWithoutPassphrase
+}
+/////////////
+public class User
+{
+    public int Id { get; set; }
+    public string Username { get; set; }
+    public AuthenticationMethod AuthMethod { get; set; }
+}
 
+
+/////////////
+public class AppDbContext : DbContext
+{
+    public DbSet<User> Users { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<User>()
+            .Property(u => u.AuthMethod)
+            .HasConversion<string>();
+    }
+}
+
+///////////////
+using (var context = new AppDbContext())
+{
+    var user = new User
+    {
+        Username = "tester",
+        AuthMethod = AuthenticationMethod.PrivateKeyWithPassphrase
+    };
+    
+    context.Users.Add(user);
+    context.SaveChanges();
+}
+/////////
+using (var context = new AppDbContext())
+{
+    var user = context.Users.FirstOrDefault(u => u.Username == "tester");
+    Console.WriteLine($"Username: {user.Username}, Auth Method: {user.AuthMethod}");
+}
