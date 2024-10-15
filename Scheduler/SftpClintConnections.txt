@@ -155,3 +155,85 @@ using (var context = new AppDbContext())
     var user = context.Users.FirstOrDefault(u => u.Username == "tester");
     Console.WriteLine($"Username: {user.Username}, Auth Method: {user.AuthMethod}");
 }
+
+///////////////////////////////////////////////////
+public class SftpService
+{
+    private readonly SftpClient _receiveClient;
+    private readonly SftpClient _sendClient;
+
+    public SftpService(SftpConnectionInfo receiveConnectionInfo, SftpConnectionInfo sendConnectionInfo)
+    {
+        var (receiveClient, receiveSuccess) = SftpClientFactory.CreateSftpClient(receiveConnectionInfo);
+        var (sendClient, sendSuccess) = SftpClientFactory.CreateSftpClient(sendConnectionInfo);
+
+        if (!receiveSuccess || !sendSuccess)
+        {
+            throw new Exception("Failed to establish SFTP connections.");
+        }
+
+        _receiveClient = receiveClient;
+        _sendClient = sendClient;
+    }
+
+    public void ReceiveAndSendFiles(string remoteReceivePath, string localPath, string remoteSendPath)
+    {
+        try
+        {
+            // Receive files from receiveClient
+            var files = _receiveClient.ListDirectory(remoteReceivePath);
+            foreach (var file in files)
+            {
+                if (!file.IsDirectory)
+                {
+                    using (var fileStream = File.OpenWrite(Path.Combine(localPath, file.Name)))
+                    {
+                        _receiveClient.DownloadFile(file.FullName, fileStream);
+                    }
+
+                    // Upload the file to sendClient
+                    using (var fileStream = File.OpenRead(Path.Combine(localPath, file.Name)))
+                    {
+                        _sendClient.UploadFile(fileStream, Path.Combine(remoteSendPath, file.Name));
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _receiveClient.Disconnect();
+            _sendClient.Disconnect();
+        }
+    }
+}
+------
+class Program
+{
+    static void Main(string[] args)
+    {
+        var receiveConnectionInfo = new SftpConnectionInfo
+        {
+            Host = "receive.example.com",
+            Port = 22,
+            Username = "receiveUser",
+            Password = "receivePassword",
+            PrivateKeyPath = "path/to/receive/private/key",
+            Passphrase = "receivePassphrase"
+        };
+
+        var sendConnectionInfo = new SftpConnectionInfo
+        {
+            Host = "send.example.com",
+            Port = 22,
+            Username = "sendUser",
+            Password = "sendPassword",
+            PrivateKeyPath = "path/to/send/private/key",
+            Passphrase = "sendPassphrase"
+        };
+
+        var sftpService = new SftpService(receiveConnectionInfo, sendConnectionInfo);
+        sftpService.ReceiveAndSendFiles("/remote/receive/path", "local/path", "/remote/send/path");
+
+        Console.WriteLine("Files received and sent successfully.");
+    }
+}
